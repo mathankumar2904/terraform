@@ -8,7 +8,7 @@ pipeline {
     environment {
         AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
-        TERRAFORM_VERSION     = "1.6.0" // You can change this version
+        TERRAFORM_VERSION     = "1.6.0"
         TERRAFORM_DIR         = "terraform_bin"
     }
 
@@ -63,7 +63,7 @@ pipeline {
                 echo "Applying Terraform plan..."
                 bat """
                 cd terraform
-                ..\\%TERRAFORM_DIR%\\terraform.exe apply -input=false tfplan
+                ..\\%TERRAFORM_DIR%\\terraform.exe apply -auto-approve tfplan
                 """
             }
         }
