@@ -67,6 +67,16 @@ pipeline {
                 """
             }
         }
+
+        stage('Output Subnet ID') {
+            steps {
+                echo "Subnet ID of the created subnet:"
+                bat """
+                cd terraform
+                ..\\%TERRAFORM_DIR%\\terraform.exe output subnet_id
+                """
+            }
+        }
     }
 
     post {
