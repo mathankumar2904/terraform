@@ -1,7 +1,6 @@
 pipeline {
     agent any
 
-    // Parameters
     parameters {
         booleanParam(
             name: 'autoApprove',
@@ -10,7 +9,6 @@ pipeline {
         )
     }
 
-    // Environment - AWS credentials stored in Jenkins
     environment {
         AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
@@ -21,28 +19,22 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                // Default SCM checkout
                 echo 'Checking out Terraform repo...'
+                git branch: 'main', url: 'https://github.com/mathankumar2904/terraform.git'
             }
         }
 
         stage('Init & Plan') {
             steps {
-                // Use Terraform tool configured in Jenkins
-                script {
-                    def tfHome = tool name: 'Terraform', type: 'org.jenkinsci.plugins.terraform.TerraformInstallation'
-                    withEnv(["PATH+TERRAFORM=${tfHome}"]) {
-                        dir('terraform') {
-                            echo 'Initializing Terraform...'
-                            bat 'terraform init'
+                dir('terraform') {
+                    echo 'Initializing Terraform...'
+                    bat 'terraform init'
 
-                            echo 'Planning Terraform changes...'
-                            bat 'terraform plan -out=tfplan'
+                    echo 'Planning Terraform changes...'
+                    bat 'terraform plan -out=tfplan'
 
-                            echo 'Saving plan output...'
-                            bat 'terraform show -no-color tfplan > tfplan.txt'
-                        }
-                    }
+                    echo 'Saving plan output...'
+                    bat 'terraform show -no-color tfplan > tfplan.txt'
                 }
             }
         }
@@ -66,14 +58,9 @@ pipeline {
 
         stage('Apply') {
             steps {
-                script {
-                    def tfHome = tool name: 'Terraform', type: 'org.jenkinsci.plugins.terraform.TerraformInstallation'
-                    withEnv(["PATH+TERRAFORM=${tfHome}"]) {
-                        dir('terraform') {
-                            echo 'Applying Terraform plan...'
-                            bat 'terraform apply -input=false tfplan'
-                        }
-                    }
+                dir('terraform') {
+                    echo 'Applying Terraform plan...'
+                    bat 'terraform apply -input=false tfplan'
                 }
             }
         }
