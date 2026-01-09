@@ -2,40 +2,44 @@ pipeline {
     agent any
 
     parameters {
-        booleanParam(
-            name: 'autoApprove',
-            defaultValue: false,
-            description: 'Automatically run apply after generating plan?'
-        )
+        booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
     }
 
     environment {
         AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
-        AWS_DEFAULT_REGION    = 'us-east-1'
+        TERRAFORM_VERSION     = "1.6.0" // You can change this version
+        TERRAFORM_DIR         = "terraform_bin"
     }
 
     stages {
-
         stage('Checkout') {
             steps {
-                echo 'Checking out Terraform repo...'
-                git branch: 'main', url: 'https://github.com/mathankumar2904/terraform.git'
+                echo "Cloning Terraform repository..."
+                git url: 'https://github.com/yeshwanthlm/Terraform-Jenkins.git', branch: 'main'
+            }
+        }
+
+        stage('Download Terraform') {
+            steps {
+                echo "Downloading Terraform..."
+                bat """
+                if not exist %TERRAFORM_DIR% mkdir %TERRAFORM_DIR%
+                curl -o terraform.zip https://releases.hashicorp.com/terraform/%TERRAFORM_VERSION%/terraform_%TERRAFORM_VERSION%_windows_amd64.zip
+                powershell -Command "Expand-Archive -Path terraform.zip -DestinationPath %TERRAFORM_DIR% -Force"
+                """
             }
         }
 
         stage('Init & Plan') {
             steps {
-                dir('terraform') {
-                    echo 'Initializing Terraform...'
-                    bat 'terraform init'
-
-                    echo 'Planning Terraform changes...'
-                    bat 'terraform plan -out=tfplan'
-
-                    echo 'Saving plan output...'
-                    bat 'terraform show -no-color tfplan > tfplan.txt'
-                }
+                echo "Initializing Terraform..."
+                bat """
+                cd terraform
+                ..\\%TERRAFORM_DIR%\\terraform.exe init
+                ..\\%TERRAFORM_DIR%\\terraform.exe plan -out=tfplan
+                ..\\%TERRAFORM_DIR%\\terraform.exe show -no-color tfplan > tfplan.txt
+                """
             }
         }
 
@@ -49,26 +53,25 @@ pipeline {
                 script {
                     def plan = readFile 'terraform/tfplan.txt'
                     input message: "Do you want to apply the plan?",
-                          parameters: [
-                              text(name: 'Plan', description: 'Please review the Terraform plan', defaultValue: plan)
-                          ]
+                        parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
                 }
             }
         }
 
         stage('Apply') {
             steps {
-                dir('terraform') {
-                    echo 'Applying Terraform plan...'
-                    bat 'terraform apply -input=false tfplan'
-                }
+                echo "Applying Terraform plan..."
+                bat """
+                cd terraform
+                ..\\%TERRAFORM_DIR%\\terraform.exe apply -input=false tfplan
+                """
             }
         }
     }
 
     post {
         always {
-            echo 'Pipeline finished.'
+            echo "Pipeline finished."
         }
     }
 }
