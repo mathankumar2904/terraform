@@ -2,40 +2,33 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# Create a VPC
-resource "aws_vpc" "my_vpc" {
+# Step 1: Create a new VPC
+resource "aws_vpc" "poc_vpc" {
   cidr_block = "10.0.0.0/16"
   tags = {
-    Name = "TerraformPOCVPC"
+    Name = "terraform-poc-vpc"
   }
 }
 
-# Create a subnet
-resource "aws_subnet" "my_subnet" {
-  vpc_id            = aws_vpc.my_vpc.id
+# Step 2: Create a new Subnet in the VPC
+resource "aws_subnet" "poc_subnet" {
+  vpc_id            = aws_vpc.poc_vpc.id
   cidr_block        = "10.0.1.0/24"
   availability_zone = "us-east-1a"
+  map_public_ip_on_launch = true
   tags = {
-    Name = "TerraformPOCSubnet"
+    Name = "terraform-poc-subnet"
   }
 }
 
-# Create a security group
-resource "aws_security_group" "my_sg" {
-  name        = "TerraformPOCSG"
-  description = "Allow SSH and HTTP"
-  vpc_id      = aws_vpc.my_vpc.id
+# Step 3: Create a Security Group
+resource "aws_security_group" "poc_sg" {
+  name   = "terraform-poc-sg"
+  vpc_id = aws_vpc.poc_vpc.id
 
   ingress {
     from_port   = 22
     to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -48,15 +41,16 @@ resource "aws_security_group" "my_sg" {
   }
 }
 
-# Create an EC2 instance
+# Step 4: Create EC2 Instance
 resource "aws_instance" "foo" {
   ami                    = "ami-05fa00d4c63e32376"
   instance_type          = "t2.micro"
-  key_name               = "terraform_key_pair"          # Replace with your AWS key pair
-  subnet_id              = aws_subnet.my_subnet.id
-  vpc_security_group_ids = [aws_security_group.my_sg.id]
+  subnet_id              = aws_subnet.poc_subnet.id
+  vpc_security_group_ids = [aws_security_group.poc_sg.id]
+  key_name               = "test-vpc-2-key"  # replace with your existing key pair
 
   tags = {
     Name = "TerraformPOCInstance"
   }
 }
+
